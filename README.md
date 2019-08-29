@@ -28,3 +28,4 @@ python -m ipykernel install --user --name py27_32 --display-name="Python 2.7 32b
 # For jupyter notebook demo, we can use jupyter in defualt env and use py27_32 as a kernel. 
 ```
 
+note: If you need to install extra python package or run python in prompt, `set CONDA_FORCE_32BIT=1` is necessary before activate `py27_32` environment.
