@@ -1,0 +1,50 @@
+"""The error codes are defined in the header file, NexMotionError.h"""
+
+SUCCESS                      = 0   # The operation completed successfully
+EXTERNAL_LIBRARY_NOT_FOUND   = -1  # The system cannot find the externel library
+API_NOT_FOUND                = -2  # The system cannot find an API address when specified library is loading
+LOAD_EXTERNAL_LIBRARY_FAILED = -3  # The system cannot load the externel library
+LOAD_RUNTIME_FAILED          = -4  # The system cannot load the runtime library
+FILE_NOT_FOUND               = -5  # The system cannot find the specified file
+FILE_OPEN_FAILED             = -6  # The system cannot open the specified file
+FILE_LOAD_FAILED             = -7  # The system cannot load the specified file
+FILE_BAD_FORMAT              = -8  # The format of the file is bad
+FILE_READ_PROHIBIT           = -9  # The file cannot be read
+FILE_WRITE_PROHIBIT          = -10 # The file cannot be write
+FILE_VERSION_INCOMPTIBLE     = -11 # The version of the file is incompatible
+OPENUP_RUNTIME_FAILED        = -12 # The system cannot openup the runtime
+OUT_OF_SYSTEM_RESOURCES      = -15 # The system resources is inefficient
+EXTERNAL_CALL_FAILED         = -16 # An external call or system call has made an error
+
+SYSTEM_NOT_INITIALIZATION = -21 # The system cannot be accessed before initialization process
+SYSTEM_CLOSED_DENIED      = -22 # The system cannot be closed before clean up process
+OPERATION_DENIED          = -23 # In current state, the system cannot accept the operation
+PERMISSION_DENIED         = -24 # The user does not have permission
+UNEXPECTED_EXCEPTION      = -25 # The operation occurred unexpected exception
+SYSTEM_NOT_READY          = -26 # The system is not ready
+OPERATION_BUSY            = -27 # The system is busy and cannot accept the operation
+WAIT_FAILED               = -28 # The wait function has failed. No wait condition
+PROCESS_TIMEOUT           = -31 # System perform current process is timeout
+RUNTIME_RESPONSE_TIMEOUT  = -32 # Runtime module does not respond in a certain time
+OBJECT_ID_INVALID         = -41 # The system cannot find the object through specified "ID", "Index", or "Handle"
+PARAMETER_NUMBER_INVALID  = -42 # The parameter number is invalid
+PARAMETER_VALUE_INVALID   = -43 # The parameter value is invalid
+PARAMETER_READ_ONLY       = -44 # The parameter is read only
+ACCESS_AREA_INVALID       = -45 # The operation attempted to access invalid area
+POINTER_NULL              = -46 # The input pointer variable is null
+QUEUE_EMPTY               = -47 # The queue is empty.
+STRUCT_SIZE_INCOMPTIBLE   = -48 # The size of structure is incomptible
+
+INITIAL_AXIS_POSITION_INVALID        = -100 # The initial position of an axis is out of limit
+INVERSE_KINEMATICS_FAILED            = -101 # Inverse kinematics process is failed
+INVERSE_KINEMATICS_OVER_AXIS_LIMIT   = -102 # The solution of inverse kinematics is out of limit
+INVERSE_KINEMATICS_SINGULAR          = -103 # The solution of inverse kinematics is singular
+KINEMATICS_TYPE_INVALID              = -104 # The type of kinematics is invalid
+AXIS_COUNT_INVALID                   = -105 # The count of axis is invalid
+GROUP_COUNT_INVALID                  = -106 # The count of group is invalid
+AXIS_MAPPING_INVALID                 = -107 # The map setting of the axis is invalid
+KINEMATICS_PARAMETER_INVALID         = -108 # The kinematics parameter of a group is invalid
+EMERGENCY_STOP_ACTIVENCY_STOP_ACTIVE = -109 # Emergency stop signal is detected.
+ENABLE_SWITCH_FULL_PRESSED           = -110 # Enabling switch full pressed signal is detected.
+SAFE_GUARD_ACTIVE                    = -111 # Safe-guard signal is detected.
+SAFETY_ERROR                         = -112 # Safety error is detected.
