@@ -2,9 +2,10 @@
 """The API of NexMotion Library"""
 import ctypes
 from ctypes import WinDLL, c_int32, c_uint32, c_uint16, c_char_p, byref
+import csv, time
 
 from nexmotion.constants import *
-from nexmotion.struct import Pos_T
+from nexmotion.struct import Pos_T, CoordTrans_T
 from nexmotion.errors import *
 
 
@@ -24,6 +25,8 @@ class Control(object):
         self.numGroupAxis_ = c_int32(0)
         self.actPos_ = Pos_T()
         self.desPos_ = Pos_T()
+        self.refBasePntArr_ = [Pos_T() for i in xrange(3)]
+        self.refBaseCoordTrans_ = CoordTrans_T()
         self.offsetByte_ = c_uint32(0)
         self.sizeByte_ = c_uint32(2)     # total two bytes (16 bits)
         self.doValue_ = c_uint16(0)
@@ -302,6 +305,7 @@ class Control(object):
         Create or display a 3D simulation window
 
         :param top_:
+        :type top_: bool
         :return: error code
         :rtype: int
         """
@@ -320,6 +324,127 @@ class Control(object):
         :rtype: int
         """
         return self.dll_.NMC_Group3DDrawPath(self.id_, self.index_, enable)
+
+    def baseCalib_1p(self, baseP1, baseCoordTrans):
+        """
+        Base teaching - 1 point method
+
+        :param baseP1: The cartesian pose for the first step. a List of 6 element [x, y, z, roll, pitch, yaw]
+        :type baseP1: list
+        :param baseCoordTrans: Return the relationship respected to reference coordinate convention
+        :type baseCoordTrans: list
+        :return: error code
+        :rtype: int
+        """
+        for i in xrange(len(baseP1)):
+            self.refBasePntArr_[0].pos[i] = baseP1[i]
+        ret = self.dll_.NMC_BaseCalib_1p(byref(self.refBasePntArr_[0]), byref(self.refBaseCoordTrans_))
+        if ret != SUCCESS:
+            print "Failed to compute base coordinate convention!"
+            return ret
+        for i in xrange(len(baseCoordTrans)):
+            baseCoordTrans[i] = self.refBaseCoordTrans_.pose[i]
+        return ret
+
+    def baseCalib_2p(self, baseP1, baseP2, baseCoordTrans):
+        """
+        Base teaching - 2 points method
+
+        :param baseP1: The cartesian pose for the first step. a List of 6 element [x, y, z, roll, pitch, yaw]
+        :type baseP1: list
+        :param baseP2: The cartesian pose for the second step. a List of 6 element [x, y, z, roll, pitch, yaw]
+        :type baseP2: list
+        :param baseCoordTrans: Return the relationship respected to reference coordinate convention
+        :type baseCoordTrans: list
+        :return: error code
+        :rtype: int
+        """
+        for i in xrange(len(baseP1)):
+            self.refBasePntArr_[0].pos[i] = baseP1[i]
+            self.refBasePntArr_[1].pos[i] = baseP2[i]
+        ret = self.dll_.NMC_BaseCalib_2p(byref(self.refBasePntArr_[0]), byref(self.refBasePntArr_[1]), byref(self.refBaseCoordTrans_))
+        if ret != SUCCESS:
+            print "Failed to compute base coordinate convention!"
+            return ret
+        for i in xrange(len(baseCoordTrans)):
+            baseCoordTrans[i] = self.refBaseCoordTrans_.pose[i]
+        return ret
+
+    def baseCalib_3p(self, baseP1, baseP2, baseP3, baseCoordTrans):
+        """
+        Base teaching - 2 points method
+
+        :param baseP1: The cartesian pose for the first step. a List of 6 element [x, y, z, roll, pitch, yaw]
+        :type baseP1: list
+        :param baseP2: The cartesian pose for the second step. a List of 6 element [x, y, z, roll, pitch, yaw]
+        :type baseP2: list
+        :param baseP3: The cartesian pose for the third step. a List of 6 element [x, y, z, roll, pitch, yaw]
+        :type baseP3: list
+        :param baseCoordTrans: Return the relationship respected to reference coordinate convention
+        :type baseCoordTrans: list
+        :return: error code
+        :rtype: int
+        """
+        for i in xrange(len(baseP1)):
+            self.refBasePntArr_[0].pos[i] = baseP1[i]
+            self.refBasePntArr_[1].pos[i] = baseP2[i]
+            self.refBasePntArr_[2].pos[i] = baseP3[i]
+        ret = self.dll_.NMC_BaseCalib_3p(byref(self.refBasePntArr_[0]), byref(self.refBasePntArr_[1]), byref(self.refBasePntArr_[2]),
+                                         byref(self.refBaseCoordTrans_))
+        if ret != SUCCESS:
+            print "Failed to compute base coordinate convention!"
+            return ret
+        for i in xrange(len(baseCoordTrans)):
+            baseCoordTrans[i] = self.refBaseCoordTrans_.pose[i]
+        return ret
+
+    def movePTP(self, index=None):
+        """
+        Move PTP to the target pose.
+        Note: check group state will block function till joints arrive, so groupHalt/groupStop can not interrupt.
+
+        :param index: indicate the position of target pose in the point list
+        :return: error code
+        :rtype: int
+        """
+        if index is None:
+            return -43       # TODO: find other suitable error code
+        ret = -42
+        if isinstance(index, int) and index < len(self.pnt_list):
+            ret = self.groupPtpAcsAll(self.pnt_list[index][:6])
+        if ret != SUCCESS:
+            print "Failed to execute groupPtpAcsAll!\n"
+            return ret
+        # Check if joints arrive command position
+        ret = self.groupGetState()
+        while ret == SUCCESS and self.groupState_.value == NMC_GROUP_STATE_MOVING:
+            time.sleep(0.1)
+            ret = self.groupGetState()
+        return ret
+
+    def moveLine(self, index=None):
+        """
+        Move Line to the target pose.
+        Note: check group state will block function till joints arrive, so groupHalt/groupStop can not interrupt.
+
+        :param index: indicate the position of target pose in the point list
+        :return: error code
+        :rtype: int
+        """
+        if index is None:
+            return -43       # TODO: find other suitable error code
+        ret = -42
+        if isinstance(index, int) and index < len(self.pnt_list):
+            ret = self.groupLine(self.pnt_list[index][6:])
+        if ret != SUCCESS:
+            print "Failed to execute groupPtpAcsAll!\n"
+            return ret
+        # Check if joints arrive command position
+        ret = self.groupGetState()
+        while ret == SUCCESS and self.groupState_.value == NMC_GROUP_STATE_MOVING:
+            time.sleep(0.1)
+            ret = self.groupGetState()
+        return ret
 
     def recordPoint(self):
         """
@@ -342,35 +467,41 @@ class Control(object):
         self.pnt_list.append(fullPos)
         return 0
 
-    def movePTP(self, index=None):
+    def readPoint(self, fileName):
         """
-        move PTP to the target pose.
+        Read Points from CSV file.
 
-        :param index: indicate the position of target pose in the point list
-        :return: error code
-        :rtype: int
+        :param fileName: the name of file that have points inside.
+        :type fileName: string
+        :return:
         """
-        if index is None:
-            return -43       # TODO: find other suitable error code
-        ret = -42
-        if isinstance(index, int) and index < len(self.pnt_list):
-            ret = self.groupPtpAcsAll(self.pnt_list[index][:6])
-        return ret
+        with open(fileName, 'r') as csvfile:
+            readCSV = csv.reader(csvfile, delimiter=',')
+            readCSV.next() # pop out header
+            #print readCSV
+            for row in readCSV:
+                print row
+                pnt_arr = [float(el) for el in row[1:]]
+                self.pnt_list.append(pnt_arr)
+            #readCSV.pop(0)
 
-    def moveLine(self, index=None):
+    def savePoint(self, fileName):
         """
-        move Line to the target pose.
+        Save Points to CSV file.
 
-        :param index: indicate the position of target pose in the point list
-        :return: error code
-        :rtype: int
+        :param fileName: the name of csv file will save points.
+        :type filename: string
+        :return:
         """
-        if index is None:
-            return -43       # TODO: find other suitable error code
-        ret = -42
-        if isinstance(index, int) and index < len(self.pnt_list):
-            ret = self.groupLine(self.pnt_list[index][6:])
-        return ret
+        csvfile = open(fileName, 'wb')
+        writeCSV = csv.writer(csvfile, delimiter=',')
+        writeCSV.writerow((',', 'j1', 'j2','j3','j4','j5','j6','x','y','z','a','b','c'))
+        import copy
+        pnts = copy.copy(self.pnt_list)
+        for id, el in enumerate(pnts):
+            el.insert(0, id)
+            writeCSV.writerow(el)
 
+        csvfile.close()
 
 

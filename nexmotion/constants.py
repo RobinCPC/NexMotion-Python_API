@@ -57,5 +57,20 @@ AXIS_STATE_WAIT_SYNC         = 7
 AXIS_STATE_GROUP_MOTION      = 8
 AXIS_STATE_ERROR             = 10
 
-# define structure Pos_T
+# Group axis number definition
+MAX_AXES_IN_GROUP = 8
+
+# Pos_T array size definition
 MAX_POS_SIZE = 8
+
+# Xyz_T array size definition
+MAX_XYZ_SIZE = 3
+
+# APos_T array size definition
+MAX_AXIS_POS_SIZE = MAX_AXES_IN_GROUP
+
+# CPos_T array size definition
+MAX_CARTESIAN_POS_SIZE = 6
+
+# CoordTrans_T array size definition
+MAX_POSE_DATA_SIZE = 6
