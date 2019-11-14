@@ -2,7 +2,8 @@
 """The API of NexMotion Library"""
 import ctypes
 from ctypes import WinDLL, c_int32, c_uint32, c_uint16, c_char_p, byref
-import csv, time
+import numpy as np
+import csv, time, copy
 
 from nexmotion.constants import *
 from nexmotion.struct import Pos_T, CoordTrans_T
@@ -495,13 +496,34 @@ class Control(object):
         """
         csvfile = open(fileName, 'wb')
         writeCSV = csv.writer(csvfile, delimiter=',')
-        writeCSV.writerow((',', 'j1', 'j2','j3','j4','j5','j6','x','y','z','a','b','c'))
-        import copy
-        pnts = copy.copy(self.pnt_list)
+        writeCSV.writerow(('', 'j1', 'j2','j3','j4','j5','j6','x','y','z','a','b','c'))
+        pnts = copy.deepcopy(self.pnt_list)
         for id, el in enumerate(pnts):
             el.insert(0, id)
             writeCSV.writerow(el)
 
         csvfile.close()
 
+def pose2matrix(pose):
+    rz = pose[3] * np.pi / 180.
+    ry = pose[4] * np.pi / 180.
+    rx = pose[5] * np.pi / 180.
+    rotz = np.mat([[np.cos(rz), -np.sin(rz),  0,  0],
+                   [np.sin(rz),  np.cos(rz),  0,  0],
+                   [         0,           0,  1,  0],
+                   [         0,           0,  0,  1]])
 
+    roty = np.mat([[ np.cos(ry),  0, np.sin(ry),  0],
+                   [          0,  1,          0,  0],
+                   [-np.sin(ry),  0, np.cos(ry),  0],
+                   [         0,   0,          0,  1]])
+
+    rotx = np.mat([[ 1,           0,           0,  0],
+                   [ 0,  np.cos(rx), -np.sin(rx),  0],
+                   [ 0,  np.sin(rx),  np.cos(rx),  0],
+                   [ 0,           0,           0,  1]])
+    HTmat = rotz*roty*rotx
+    HTmat[0,3] = pose[0]
+    HTmat[1,3] = pose[1]
+    HTmat[2,3] = pose[2]
+    return HTmat
