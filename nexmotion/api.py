@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """The API of NexMotion Library"""
 import ctypes
-from ctypes import WinDLL, c_int32, c_uint32, c_uint16, c_char_p, byref
+from ctypes import WinDLL, c_int32, c_uint32, c_uint16, c_char_p, c_double, byref
 import numpy as np
 import csv, time, copy
 
@@ -22,6 +22,7 @@ class Control(object):
         self.type_ = c_int32(DEVICE_TYPE_SIMULATOR)
         self.devState_ = c_int32(0)
         self.groupState_ = c_int32(0)
+        self.groupVel_ = c_double(0)
         self.numGroup_ = c_int32(0)
         self.numGroupAxis_ = c_int32(0)
         self.actPos_ = Pos_T()
@@ -204,6 +205,39 @@ class Control(object):
         """
         return self.dll_.NMC_GroupDisable(self.id_, self.index_)
 
+    def groupSetVelRatio(self, ratio):
+        """
+        Set the velocity percentage of a group from 0.0 to 100.0%.
+
+        :param ratio: The velocity percentage will be set. 
+        :type pos: float
+        :return: error code
+        :rtype: int
+        """
+        ret = self.dll_.NMC_GroupSetVelRatio(self.id_, self.index_, c_double(ratio))
+        if ret == SUCCESS:
+            self.groupVel_.value = ratio
+        else:
+            print "Set group velocity failed!"
+        return ret
+    
+    def groupGetVelRatio(self, ratio):
+        """
+        Get the velocity percentage of a group.
+
+        :param ratio: variable to storage the current velocity percentage. 
+        :type pos: float
+        :return: error code
+        :rtype: int
+        """
+        ret = self.dll_.NMC_GroupGetVelRatio(self.id_, self.index_, byref(self.groupVel_))
+        if ret == SUCCESS:
+            print self.groupVel_.value
+            ratio = self.groupVel_.value
+        else:
+            print "Get group velocity failed!"
+        return ret
+    
     def groupGetActualPosAcs(self, pos):
         """
         Get the actual position of a group in the axis coordinate system (ACS).
@@ -468,6 +502,32 @@ class Control(object):
         self.pnt_list.append(fullPos)
         return 0
 
+    def updatePoint(self, index=None):
+        """
+        Store current pose (joint, tcp) as a List of 12 element into existed element of pnt_list.
+
+        :param index: the index of existed element that will be replaced by current pose.
+        :type index: int
+        :return: error code
+        :rtype: int
+        """
+        if not isinstance(index, int) or index >= len(self.pnt_list) or index < 0:
+            print "index is not valid!"
+            return -1
+        jntPos = [0.] *6
+        cartPos = [0.] * 6
+        ret = self.groupGetActualPosAcs(jntPos)
+        if ret != SUCCESS:
+            print "Failed to get joint pose!"
+            return ret
+        self.groupGetActualPosPcs(cartPos)
+        if ret != SUCCESS:
+            print "Failed to get cartesian pose!"
+            return ret
+        fullPos = jntPos + cartPos
+        self.pnt_list[index] = fullPos
+        return 0
+
     def readPoint(self, fileName):
         """
         Read Points from CSV file.
@@ -481,7 +541,7 @@ class Control(object):
             readCSV.next() # pop out header
             #print readCSV
             for row in readCSV:
-                print row
+                #print row
                 pnt_arr = [float(el) for el in row[1:]]
                 self.pnt_list.append(pnt_arr)
             #readCSV.pop(0)
