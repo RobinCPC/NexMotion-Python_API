@@ -35,7 +35,7 @@ ipykernel==4.10.0
 ipython==5.8.0
 ipython-genutils==0.2.0
 ipywidgets==7.4.2
-Jinja2==2.10
+Jinja2==2.10.1
 jmespath==0.9.4
 jsonschema==2.6.0
 jupyter==1.0.0
@@ -70,7 +70,7 @@ pyrealsense2==2.29.0.1124
 python-dateutil==2.7.5
 pytz==2019.3
 pywinpty==0.5.5
-PyYAML==5.1
+PyYAML==4.2b4
 pyzmq==17.1.2
 qtconsole==4.4.3
 requests==2.20.1
