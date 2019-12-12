@@ -15,7 +15,7 @@ class Control(object):
     A class to wrap NexMotion library
     """
 
-    def __init__(self, dll_path="C:\\Windows\\SysWOW64\\NexMotion.dll"):
+    def __init__(self, dll_path="C:\\Windows\\System32\\NexMotion.dll"):
         self.dll_ = WinDLL(dll_path)
         self.id_ = c_int32(0)
         self.index_ = c_int32(0)
@@ -285,6 +285,33 @@ class Control(object):
             mask_sum += mask_set[m]
         return self.dll_.NMC_GroupAxesHomeDrive(self.id_, self.index_, c_int32(mask_sum))
 
+    def groupSetHomePose(self, mask=None, setPose=None):
+        """
+        Do Homing Manually.
+        Note: this command may record joint offset value.
+
+        :param mask: a list/set of joint number (0 - 5) ex. mask = [0,2,4] # will do homing for joint 1, 3, 5
+        :type mask: List
+        :param setPose: a list/set of joint value that assign to joints according to mask ex. mask = [0,2,4], setPose = [0, 20, -90]. will set 0 deg to joint 1, 20 deg to joint 3, and -90 deg to joint 5.
+        :type mask: List
+        :return: error code
+        :rtype: int
+        """
+        if setPose == None or mask == None:
+            print "arg mask and setPose need to provide"
+        if not isinstance(setPose, list) or not isinstance(mask, list):
+            print "arg mask and setPose both should be list"
+        if len(setPose) != len(mask):
+            print "arg mask and setPose should have the same number of element."
+        homePose = Pos_T()
+        mask_set = [GROUP_AXIS_MASK_X, GROUP_AXIS_MASK_Y, GROUP_AXIS_MASK_Z,
+                     GROUP_AXIS_MASK_A, GROUP_AXIS_MASK_B, GROUP_AXIS_MASK_C]
+        mask_sum = 0
+        for m, p in zip(mask, setPose):
+            mask_sum += mask_set[m]
+            homePose.pos[m] = p
+        return self.dll_.NMC_GroupSetHomePose(self.id_, self.index_, c_int32(mask_sum), byref(homePose))
+    
     def groupPtpAcsAll(self, desPos):
         """
         Do PTP motion
