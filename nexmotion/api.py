@@ -27,7 +27,7 @@ class Control(object):
         self.numGroupAxis_ = c_int32(0)
         self.actPos_ = Pos_T()
         self.desPos_ = Pos_T()
-        self.refBasePntArr_ = [Pos_T() for i in xrange(3)]
+        self.refBasePntArr_ = [Pos_T() for i in range(3)]
         self.refBaseCoordTrans_ = CoordTrans_T()
         self.offsetByte_ = c_uint32(0)
         self.sizeByte_ = c_uint32(2)     # total two bytes (16 bits)
@@ -40,8 +40,8 @@ class Control(object):
         stage = c_int32(0)
         build = c_int32(0)
         self.version_ = self.dll_.NMC_GetLibVersion(byref(major), byref(minor), byref(stage), byref(build))
-        print "Dynamics library version =", self.version_, "(", major.value, ",", minor.value, \
-            ",", stage.value, ",", build.value, ")"
+        print( "Dynamics library version =", self.version_, "(", major.value, ",", minor.value, \
+            ",", stage.value, ",", build.value, ")")
         # self.ver_char_p_ = ctypes.c_char_p()
         # self.dll_.NMC_GetLibVersionString.argtypes = [ctypes.c_char_p, ctypes.c_uint32]
         # self.dll_.NMC_GetLibVersionString(self.ver_char_p_, ctypes.c_uint32(32))
@@ -64,7 +64,7 @@ class Control(object):
             self.index_ = c_int32(idx_)
         ret = self.dll_.NMC_DeviceOpenUp(self.type_, self.index_, byref(self.id_))
         if ret == SUCCESS:
-            print "device id =", self.id_.value
+            print( "device id =", self.id_.value)
         return ret
 
     def deviceShutdown(self, id_=None):
@@ -130,7 +130,7 @@ class Control(object):
         :rtype: int
         """
         if len(DO_list) != 2:
-            print "DO_list should be a list of two list"
+            print( "DO_list should be a list of two list")
             return
         tmp_value = 0
         for i in DO_list[0]:
@@ -218,7 +218,7 @@ class Control(object):
         if ret == SUCCESS:
             self.groupVel_.value = ratio
         else:
-            print "Set group velocity failed!"
+            print( "Set group velocity failed!")
         return ret
     
     def groupGetVelRatio(self, ratio):
@@ -232,10 +232,10 @@ class Control(object):
         """
         ret = self.dll_.NMC_GroupGetVelRatio(self.id_, self.index_, byref(self.groupVel_))
         if ret == SUCCESS:
-            print self.groupVel_.value
+            print( self.groupVel_.value)
             ratio = self.groupVel_.value
         else:
-            print "Get group velocity failed!"
+            print( "Get group velocity failed!")
         return ret
     
     def groupGetActualPosAcs(self, pos):
@@ -248,7 +248,7 @@ class Control(object):
         :rtype: int
         """
         ret = self.dll_.NMC_GroupGetActualPosAcs(self.id_, self.index_, byref(self.actPos_))
-        for i in xrange(len(pos)):
+        for i in range(len(pos)):
             pos[i] = self.actPos_.pos[i]
         return ret
 
@@ -262,7 +262,7 @@ class Control(object):
         :rtype: int
         """
         ret = self.dll_.NMC_GroupGetActualPosPcs(self.id_, self.index_, byref(self.actPos_))
-        for i in xrange(len(pos)):
+        for i in range(len(pos)):
             pos[i] = self.actPos_.pos[i]
         return ret
 
@@ -298,11 +298,11 @@ class Control(object):
         :rtype: int
         """
         if setPose == None or mask == None:
-            print "arg mask and setPose need to provide"
+            print( "arg mask and setPose need to provide")
         if not isinstance(setPose, list) or not isinstance(mask, list):
-            print "arg mask and setPose both should be list"
+            print( "arg mask and setPose both should be list")
         if len(setPose) != len(mask):
-            print "arg mask and setPose should have the same number of element."
+            print( "arg mask and setPose should have the same number of element.")
         homePose = Pos_T()
         mask_set = [GROUP_AXIS_MASK_X, GROUP_AXIS_MASK_Y, GROUP_AXIS_MASK_Z,
                      GROUP_AXIS_MASK_A, GROUP_AXIS_MASK_B, GROUP_AXIS_MASK_C]
@@ -321,7 +321,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        for i in xrange(len(desPos)):
+        for i in range(len(desPos)):
             self.desPos_.pos[i] = desPos[i]
         mask = 0
         mask += GROUP_AXIS_MASK_X
@@ -349,7 +349,7 @@ class Control(object):
         mask += GROUP_AXIS_MASK_A
         mask += GROUP_AXIS_MASK_B
         mask += GROUP_AXIS_MASK_C
-        for i in xrange(len(desPos)):
+        for i in range(len(desPos)):
             self.desPos_.pos[i] = desPos[i]
         return self.dll_.NMC_GroupLine(self.id_, self.index_, c_int32(mask), byref(self.desPos_), maxVel)
 
@@ -398,13 +398,13 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        for i in xrange(len(baseP1)):
+        for i in range(len(baseP1)):
             self.refBasePntArr_[0].pos[i] = baseP1[i]
         ret = self.dll_.NMC_BaseCalib_1p(byref(self.refBasePntArr_[0]), byref(self.refBaseCoordTrans_))
         if ret != SUCCESS:
-            print "Failed to compute base coordinate convention!"
+            print( "Failed to compute base coordinate convention!")
             return ret
-        for i in xrange(len(baseCoordTrans)):
+        for i in range(len(baseCoordTrans)):
             baseCoordTrans[i] = self.refBaseCoordTrans_.pose[i]
         return ret
 
@@ -421,14 +421,14 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        for i in xrange(len(baseP1)):
+        for i in range(len(baseP1)):
             self.refBasePntArr_[0].pos[i] = baseP1[i]
             self.refBasePntArr_[1].pos[i] = baseP2[i]
         ret = self.dll_.NMC_BaseCalib_2p(byref(self.refBasePntArr_[0]), byref(self.refBasePntArr_[1]), byref(self.refBaseCoordTrans_))
         if ret != SUCCESS:
-            print "Failed to compute base coordinate convention!"
+            print( "Failed to compute base coordinate convention!")
             return ret
-        for i in xrange(len(baseCoordTrans)):
+        for i in range(len(baseCoordTrans)):
             baseCoordTrans[i] = self.refBaseCoordTrans_.pose[i]
         return ret
 
@@ -447,16 +447,16 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        for i in xrange(len(baseP1)):
+        for i in range(len(baseP1)):
             self.refBasePntArr_[0].pos[i] = baseP1[i]
             self.refBasePntArr_[1].pos[i] = baseP2[i]
             self.refBasePntArr_[2].pos[i] = baseP3[i]
         ret = self.dll_.NMC_BaseCalib_3p(byref(self.refBasePntArr_[0]), byref(self.refBasePntArr_[1]), byref(self.refBasePntArr_[2]),
                                          byref(self.refBaseCoordTrans_))
         if ret != SUCCESS:
-            print "Failed to compute base coordinate convention!"
+            print( "Failed to compute base coordinate convention!")
             return ret
-        for i in xrange(len(baseCoordTrans)):
+        for i in range(len(baseCoordTrans)):
             baseCoordTrans[i] = self.refBaseCoordTrans_.pose[i]
         return ret
 
@@ -475,7 +475,7 @@ class Control(object):
         if isinstance(index, int) and index < len(self.pnt_list):
             ret = self.groupPtpAcsAll(self.pnt_list[index][:6])
         if ret != SUCCESS:
-            print "Failed to execute groupPtpAcsAll!\n"
+            print( "Failed to execute groupPtpAcsAll!\n")
             return ret
         # Check if joints arrive command position
         ret = self.groupGetState()
@@ -499,7 +499,7 @@ class Control(object):
         if isinstance(index, int) and index < len(self.pnt_list):
             ret = self.groupLine(self.pnt_list[index][6:])
         if ret != SUCCESS:
-            print "Failed to execute groupPtpAcsAll!\n"
+            print( "Failed to execute groupPtpAcsAll!\n")
             return ret
         # Check if joints arrive command position
         ret = self.groupGetState()
@@ -519,11 +519,11 @@ class Control(object):
         cartPos = [0.] * 6
         ret = self.groupGetActualPosAcs(jntPos)
         if ret != SUCCESS:
-            print "Failed to get joint pose!"
+            print( "Failed to get joint pose!")
             return ret
         self.groupGetActualPosPcs(cartPos)
         if ret != SUCCESS:
-            print "Failed to get cartesian pose!"
+            print( "Failed to get cartesian pose!")
             return ret
         fullPos = jntPos + cartPos
         self.pnt_list.append(fullPos)
@@ -539,17 +539,17 @@ class Control(object):
         :rtype: int
         """
         if not isinstance(index, int) or index >= len(self.pnt_list) or index < 0:
-            print "index is not valid!"
+            print( "index is not valid!")
             return -1
         jntPos = [0.] *6
         cartPos = [0.] * 6
         ret = self.groupGetActualPosAcs(jntPos)
         if ret != SUCCESS:
-            print "Failed to get joint pose!"
+            print( "Failed to get joint pose!")
             return ret
         self.groupGetActualPosPcs(cartPos)
         if ret != SUCCESS:
-            print "Failed to get cartesian pose!"
+            print( "Failed to get cartesian pose!")
             return ret
         fullPos = jntPos + cartPos
         self.pnt_list[index] = fullPos
