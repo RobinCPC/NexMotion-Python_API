@@ -609,3 +609,120 @@ def pose2matrix(pose):
     HTmat[1,3] = pose[1]
     HTmat[2,3] = pose[2]
     return HTmat
+
+def getTFmatrix(theta, alpha, a, d):
+    tht = theta * (np.pi / 180.)
+    alp = alpha * (np.pi / 180.)
+    ct, st = np.cos(tht), np.sin(tht)
+    ca, sa = np.cos(alp), np.sin(alp)
+    out_mat = np.mat([
+        [ct, -st, 0, a],
+        [st*ca, ct*ca, -sa, -sa*d ],
+        [st*sa, ct*sa,  ca,  ca*d ],
+        [0, 0, 0, 1]
+    ])
+    return out_mat
+
+try:
+    import matplotlib.pyplot as plt
+    import mpl_toolkits.mplot3d.axes3d as p3
+    import matplotlib.animation as animation
+except:
+    print("Can not import maplotlib!")
+    print("MplVisaul class will not work!")
+
+
+class MplVisual(object):
+    def __init__(self, ax, theta=None):
+        self.ax = ax
+        if theta is None:
+            self.theta = [0, 90, 0, 0, -90, 0] # (deg) joint values
+        else:
+            self.theta = theta
+        if len(self.theta) is not 6:
+            print("theta should be a array of 6 value!")
+            return
+        self.alpha = [0, 90, 0, 90, -90, 90] # deg
+        self.d = [339, 0, 0, 250, 0, 95]
+        self.a = [0, 0, 250, 70, 0, 0]
+        self.tf_mat = []
+        self.tf_coor_data = []
+        self.joints_pos = [[0.], [0.], [0.] ]  # np.mat([[0.], [0.], [0.]])
+        self.tf_coor = []     # List of 3 Line3D (x,y,z)
+        self.links3d = None   # Line3D object
+        self.arrow_len = 60
+        self.draw_id = [1, 1, 1, 1, 1, 1]
+
+    def get_tf_data(self):
+        for idx, (tht, alp, ai, di) in enumerate(zip(self.theta, self.alpha, self.a, self.d)):
+            #print(idx, len(self.tf_mat))
+            mat = []
+            coor_bar = []
+            if idx == 0:
+                mat = getTFmatrix(tht, alp, ai, di)
+            else:
+                mat = self.tf_mat[idx-1] * getTFmatrix(tht, alp, ai, di)
+            for i in range(3):  # get 3-axis of each joint
+                self.joints_pos[i].append(mat[i, 3])
+                coor_bar.append([[ self.arrow_len*mat[0, i]+mat[0, 3], mat[0, 3] ],
+                                 [ self.arrow_len*mat[1, i]+mat[1, 3], mat[1, 3] ],
+                                 [ self.arrow_len*mat[2, i]+mat[2, 3], mat[2, 3] ]])
+            self.tf_mat.append(mat)
+            self.tf_coor_data.append(coor_bar)
+
+    def draw_tf_view(self):
+        self.links3d = self.ax.plot(self.joints_pos[0], self.joints_pos[1], self.joints_pos[2], color='orange', marker='o', \
+                                    linewidth=4, markersize=12, markerfacecolor='purple')[0]
+
+        # add joint coordinates marker
+        #draw_id = [1, 1, 1, 1, 1, 1]
+        #tf_coor = []
+        for dr, data in zip(self.draw_id, self.tf_coor_data):
+            #print(dr, coor)
+            if dr: # true for drawing coordinate of the i joint.
+                x_dir = self.ax.plot(data[0][0], data[0][1], data[0][2], 'r', linewidth=1)[0]
+                y_dir = self.ax.plot(data[1][0], data[1][1], data[1][2], 'g', linewidth=1)[0]
+                z_dir = self.ax.plot(data[2][0], data[2][1], data[2][2], 'b', linewidth=1)[0]
+                self.tf_coor.append([x_dir, y_dir, z_dir])
+        self.ax.set_xlim3d([-300, 450])
+        self.ax.set_xlabel('X')
+        self.ax.set_ylim3d([-300, 450])
+        self.ax.set_ylabel('Y')
+        self.ax.set_zlim3d([-50, 700])
+        self.ax.set_zlabel('Z')
+        #self.ax.axis('equal')
+        self.ax.set_title('Robot 3D TF View')
+
+    def update_tf_data(self):
+        for idx, (tht, alp, ai, di) in enumerate(zip(self.theta, self.alpha, self.a, self.d)):
+            #print(idx, len(self.tf_mat))
+            mat = []
+            coor_bar = []
+            if idx == 0:
+                mat = getTFmatrix(tht, alp, ai, di)
+            else:
+                mat = self.tf_mat[idx-1] * getTFmatrix(tht, alp, ai, di)
+            for i in range(3):  # get 3-axis of each joint
+                self.joints_pos[i][idx+1] = mat[i, 3]
+                coor_bar.append([[ self.arrow_len*mat[0, i]+mat[0, 3], mat[0, 3] ],
+                                 [ self.arrow_len*mat[1, i]+mat[1, 3], mat[1, 3] ],
+                                 [ self.arrow_len*mat[2, i]+mat[2, 3], mat[2, 3] ]])
+            self.tf_mat[idx] = mat
+            self.tf_coor_data[idx] = coor_bar
+
+    def update_tf_view(self, theta=None):
+        if theta is None:
+            print("Need provide joints value")
+            return
+        if not isinstance(theta, list) or not len(theta) == 6:
+            print("input is not a list of 6 value")
+            return
+        # Update tf_data
+        self.theta = theta
+        self.update_tf_data()
+
+        # Update Line3D data in mpl ax
+        self.links3d.set_data_3d(self.joints_pos[0], self.joints_pos[1], self.joints_pos[2])
+        for coor, data in zip(self.tf_coor, self.tf_coor_data):
+            for i in range(3):
+                coor[i].set_data_3d(data[i][0], data[i][1], data[i][2])
