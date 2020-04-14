@@ -42,9 +42,6 @@ class Control(object):
         self.version_ = self.dll_.NMC_GetLibVersion(byref(major), byref(minor), byref(stage), byref(build))
         print( "Dynamics library version =", self.version_, "(", major.value, ",", minor.value, \
             ",", stage.value, ",", build.value, ")")
-        # self.ver_char_p_ = ctypes.c_char_p()
-        # self.dll_.NMC_GetLibVersionString.argtypes = [ctypes.c_char_p, ctypes.c_uint32]
-        # self.dll_.NMC_GetLibVersionString(self.ver_char_p_, ctypes.c_uint32(32))
 
     def deviceOpenup(self, type_=None, idx_=None):
         """
@@ -209,7 +206,7 @@ class Control(object):
         """
         Set the velocity percentage of a group from 0.0 to 100.0%.
 
-        :param ratio: The velocity percentage will be set. 
+        :param ratio: The velocity percentage will be set.
         :type pos: float
         :return: error code
         :rtype: int
@@ -220,12 +217,13 @@ class Control(object):
         else:
             print( "Set group velocity failed!")
         return ret
-    
+
     def groupGetVelRatio(self, ratio):
         """
         Get the velocity percentage of a group.
+        TODO: put ratio to return argument.
 
-        :param ratio: variable to storage the current velocity percentage. 
+        :param ratio: variable to storage the current velocity percentage.
         :type pos: float
         :return: error code
         :rtype: int
@@ -237,7 +235,7 @@ class Control(object):
         else:
             print( "Get group velocity failed!")
         return ret
-    
+
     def groupGetActualPosAcs(self, pos):
         """
         Get the actual position of a group in the axis coordinate system (ACS).
@@ -311,7 +309,7 @@ class Control(object):
             mask_sum += mask_set[m]
             homePose.pos[m] = p
         return self.dll_.NMC_GroupSetHomePose(self.id_, self.index_, c_int32(mask_sum), byref(homePose))
-    
+
     def groupPtpAcsAll(self, desPos):
         """
         Do PTP motion
@@ -565,13 +563,10 @@ class Control(object):
         """
         with open(fileName, 'r') as csvfile:
             readCSV = csv.reader(csvfile, delimiter=',')
-            readCSV.next() # pop out header
-            #print readCSV
+            next(readCSV)   # pop out header
             for row in readCSV:
-                #print row
                 pnt_arr = [float(el) for el in row[1:]]
                 self.pnt_list.append(pnt_arr)
-            #readCSV.pop(0)
 
     def savePoint(self, fileName):
         """
