@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """The API of NexMotion Library"""
-import ctypes
-from ctypes import WinDLL, c_int32, c_uint32, c_uint16, c_char_p, c_double, byref
+from ctypes import (WinDLL, c_int32, c_uint32, c_uint16, c_char_p, c_double, byref)
 import numpy as np
 import csv, time, copy
 
@@ -17,6 +16,7 @@ class Control(object):
 
     def __init__(self, dll_path="C:\\Windows\\System32\\NexMotion.dll"):
         self.dll_ = WinDLL(dll_path)
+        self.ini_path_ptr_ = c_char_p('')
         self.id_ = c_int32(0)
         self.index_ = c_int32(0)
         self.type_ = c_int32(DEVICE_TYPE_SIMULATOR)
@@ -40,8 +40,8 @@ class Control(object):
         stage = c_int32(0)
         build = c_int32(0)
         self.version_ = self.dll_.NMC_GetLibVersion(byref(major), byref(minor), byref(stage), byref(build))
-        print( "Dynamics library version =", self.version_, "(", major.value, ",", minor.value, \
-            ",", stage.value, ",", build.value, ")")
+        print("Dynamics library version =", self.version_, "(", major.value, ",", minor.value,
+              ",", stage.value, ",", build.value, ")")
 
     def deviceOpenup(self, type_=None, idx_=None):
         """
@@ -61,7 +61,7 @@ class Control(object):
             self.index_ = c_int32(idx_)
         ret = self.dll_.NMC_DeviceOpenUp(self.type_, self.index_, byref(self.id_))
         if ret == SUCCESS:
-            print( "device id =", self.id_.value)
+            print("device id =", self.id_.value)
         return ret
 
     def deviceShutdown(self, id_=None):
@@ -122,12 +122,12 @@ class Control(object):
         TODO: Need modify to remove second list element.
 
         :param DO_list: a List of two array show which DO should on or off [ [], [] ]
-        :type DO_list: List( List, List)
+        :type DO_list: List(List, List)
         :return: error code
         :rtype: int
         """
         if len(DO_list) != 2:
-            print( "DO_list should be a list of two list")
+            print("DO_list should be a list of two list")
             return
         tmp_value = 0
         for i in DO_list[0]:
@@ -207,7 +207,7 @@ class Control(object):
         Set the velocity percentage of a group from 0.0 to 100.0%.
 
         :param ratio: The velocity percentage will be set.
-        :type pos: float
+        :type ratio: float
         :return: error code
         :rtype: int
         """
@@ -215,7 +215,7 @@ class Control(object):
         if ret == SUCCESS:
             self.groupVel_.value = ratio
         else:
-            print( "Set group velocity failed!")
+            print("Set group velocity failed!")
         return ret
 
     def groupGetVelRatio(self, ratio):
@@ -224,16 +224,16 @@ class Control(object):
         TODO: put ratio to return argument.
 
         :param ratio: variable to storage the current velocity percentage.
-        :type pos: float
+        :type ratio: float
         :return: error code
         :rtype: int
         """
         ret = self.dll_.NMC_GroupGetVelRatio(self.id_, self.index_, byref(self.groupVel_))
         if ret == SUCCESS:
-            print( self.groupVel_.value)
-            ratio = self.groupVel_.value
+            print(self.groupVel_.value)
+            #ratio = self.groupVel_.value
         else:
-            print( "Get group velocity failed!")
+            print("Get group velocity failed!")
         return ret
 
     def groupGetActualPosAcs(self, pos):
@@ -290,17 +290,18 @@ class Control(object):
 
         :param mask: a list/set of joint number (0 - 5) ex. mask = [0,2,4] # will do homing for joint 1, 3, 5
         :type mask: List
-        :param setPose: a list/set of joint value that assign to joints according to mask ex. mask = [0,2,4], setPose = [0, 20, -90]. will set 0 deg to joint 1, 20 deg to joint 3, and -90 deg to joint 5.
+        :param setPose: a list/set of joint value that assign to joints according to mask ex. mask = [0,2,4],
+            setPose = [0, 20, -90]. will set 0 deg to joint 1, 20 deg to joint 3, and -90 deg to joint 5.
         :type mask: List
         :return: error code
         :rtype: int
         """
-        if setPose == None or mask == None:
-            print( "arg mask and setPose need to provide")
+        if setPose is None or mask is None:
+            print("arg mask and setPose need to provide")
         if not isinstance(setPose, list) or not isinstance(mask, list):
-            print( "arg mask and setPose both should be list")
+            print("arg mask and setPose both should be list")
         if len(setPose) != len(mask):
-            print( "arg mask and setPose should have the same number of element.")
+            print("arg mask and setPose should have the same number of element.")
         homePose = Pos_T()
         mask_set = [GROUP_AXIS_MASK_X, GROUP_AXIS_MASK_Y, GROUP_AXIS_MASK_Z,
                      GROUP_AXIS_MASK_A, GROUP_AXIS_MASK_B, GROUP_AXIS_MASK_C]
@@ -400,7 +401,7 @@ class Control(object):
             self.refBasePntArr_[0].pos[i] = baseP1[i]
         ret = self.dll_.NMC_BaseCalib_1p(byref(self.refBasePntArr_[0]), byref(self.refBaseCoordTrans_))
         if ret != SUCCESS:
-            print( "Failed to compute base coordinate convention!")
+            print("Failed to compute base coordinate convention!")
             return ret
         for i in range(len(baseCoordTrans)):
             baseCoordTrans[i] = self.refBaseCoordTrans_.pose[i]
@@ -424,7 +425,7 @@ class Control(object):
             self.refBasePntArr_[1].pos[i] = baseP2[i]
         ret = self.dll_.NMC_BaseCalib_2p(byref(self.refBasePntArr_[0]), byref(self.refBasePntArr_[1]), byref(self.refBaseCoordTrans_))
         if ret != SUCCESS:
-            print( "Failed to compute base coordinate convention!")
+            print("Failed to compute base coordinate convention!")
             return ret
         for i in range(len(baseCoordTrans)):
             baseCoordTrans[i] = self.refBaseCoordTrans_.pose[i]
@@ -452,7 +453,7 @@ class Control(object):
         ret = self.dll_.NMC_BaseCalib_3p(byref(self.refBasePntArr_[0]), byref(self.refBasePntArr_[1]), byref(self.refBasePntArr_[2]),
                                          byref(self.refBaseCoordTrans_))
         if ret != SUCCESS:
-            print( "Failed to compute base coordinate convention!")
+            print("Failed to compute base coordinate convention!")
             return ret
         for i in range(len(baseCoordTrans)):
             baseCoordTrans[i] = self.refBaseCoordTrans_.pose[i]
@@ -473,7 +474,7 @@ class Control(object):
         if isinstance(index, int) and index < len(self.pnt_list):
             ret = self.groupPtpAcsAll(self.pnt_list[index][:6])
         if ret != SUCCESS:
-            print( "Failed to execute groupPtpAcsAll!\n")
+            print("Failed to execute groupPtpAcsAll!\n")
             return ret
         # Check if joints arrive command position
         ret = self.groupGetState()
@@ -497,7 +498,7 @@ class Control(object):
         if isinstance(index, int) and index < len(self.pnt_list):
             ret = self.groupLine(self.pnt_list[index][6:])
         if ret != SUCCESS:
-            print( "Failed to execute groupPtpAcsAll!\n")
+            print("Failed to execute groupPtpAcsAll!\n")
             return ret
         # Check if joints arrive command position
         ret = self.groupGetState()
@@ -513,15 +514,15 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        jntPos = [0.] *6
+        jntPos = [0.] * 6
         cartPos = [0.] * 6
         ret = self.groupGetActualPosAcs(jntPos)
         if ret != SUCCESS:
-            print( "Failed to get joint pose!")
+            print("Failed to get joint pose!")
             return ret
         self.groupGetActualPosPcs(cartPos)
         if ret != SUCCESS:
-            print( "Failed to get cartesian pose!")
+            print("Failed to get cartesian pose!")
             return ret
         fullPos = jntPos + cartPos
         self.pnt_list.append(fullPos)
@@ -537,17 +538,17 @@ class Control(object):
         :rtype: int
         """
         if not isinstance(index, int) or index >= len(self.pnt_list) or index < 0:
-            print( "index is not valid!")
+            print("index is not valid!")
             return -1
-        jntPos = [0.] *6
+        jntPos = [0.] * 6
         cartPos = [0.] * 6
         ret = self.groupGetActualPosAcs(jntPos)
         if ret != SUCCESS:
-            print( "Failed to get joint pose!")
+            print("Failed to get joint pose!")
             return ret
         self.groupGetActualPosPcs(cartPos)
         if ret != SUCCESS:
-            print( "Failed to get cartesian pose!")
+            print("Failed to get cartesian pose!")
             return ret
         fullPos = jntPos + cartPos
         self.pnt_list[index] = fullPos
@@ -573,18 +574,19 @@ class Control(object):
         Save Points to CSV file.
 
         :param fileName: the name of csv file will save points.
-        :type filename: string
+        :type fileName: string
         :return:
         """
         csvfile = open(fileName, 'wb')
         writeCSV = csv.writer(csvfile, delimiter=',')
-        writeCSV.writerow(('', 'j1', 'j2','j3','j4','j5','j6','x','y','z','a','b','c'))
+        writeCSV.writerow(('', 'j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'x', 'y', 'z', 'a', 'b', 'c'))
         pnts = copy.deepcopy(self.pnt_list)
         for id, el in enumerate(pnts):
             el.insert(0, id)
             writeCSV.writerow(el)
 
         csvfile.close()
+
 
 def pose2matrix(pose):
     rz = pose[3] * np.pi / 180.
@@ -604,11 +606,12 @@ def pose2matrix(pose):
                    [ 0,  np.cos(rx), -np.sin(rx),  0],
                    [ 0,  np.sin(rx),  np.cos(rx),  0],
                    [ 0,           0,           0,  1]])
-    HTmat = rotz*roty*rotx
-    HTmat[0,3] = pose[0]
-    HTmat[1,3] = pose[1]
-    HTmat[2,3] = pose[2]
-    return HTmat
+    ht_mat = rotz*roty*rotx
+    ht_mat[0, 3] = pose[0]
+    ht_mat[1, 3] = pose[1]
+    ht_mat[2, 3] = pose[2]
+    return ht_mat
+
 
 def getTFmatrix(theta, alpha, a, d):
     tht = theta * (np.pi / 180.)
@@ -617,37 +620,46 @@ def getTFmatrix(theta, alpha, a, d):
     ca, sa = np.cos(alp), np.sin(alp)
     out_mat = np.mat([
         [ct, -st, 0, a],
-        [st*ca, ct*ca, -sa, -sa*d ],
-        [st*sa, ct*sa,  ca,  ca*d ],
+        [st*ca, ct*ca, -sa, -sa*d],
+        [st*sa, ct*sa,  ca,  ca*d],
         [0, 0, 0, 1]
     ])
     return out_mat
 
+
 try:
-    import matplotlib.pyplot as plt
-    import mpl_toolkits.mplot3d.axes3d as p3
-    import matplotlib.animation as animation
-except:
-    print("Can not import maplotlib!")
-    print("MplVisaul class will not work!")
+    import mpl_toolkits.mplot3d.axes3d
+except ImportError as e:
+    print(e.name)
+    print("Can not import matplotlib!")
+    print("MplVisual class will not work!")
 
 
 class MplVisual(object):
+    theta: list
+    ax: mpl_toolkits.mplot3d.axes3d.Axes3D
+
     def __init__(self, ax, theta=None):
+        """ A class to draw 3D robot tf view by matplotlib
+
+        :param ax: A 3D Axes object.
+        :type ax: mpl_toolkits.mplot3d.axes3d.Axes3D
+        :param theta: A list of 6 joint values.
+        """
         self.ax = ax
         if theta is None:
-            self.theta = [0, 90, 0, 0, -90, 0] # (deg) joint values
+            self.theta = [0, 90, 0, 0, -90, 0]  # (deg) joint values
         else:
             self.theta = theta
         if len(self.theta) is not 6:
             print("theta should be a array of 6 value!")
             return
-        self.alpha = [0, 90, 0, 90, -90, 90] # deg
+        self.alpha = [0, 90, 0, 90, -90, 90]  # deg
         self.d = [339, 0, 0, 250, 0, 95]
         self.a = [0, 0, 250, 70, 0, 0]
         self.tf_mat = []
         self.tf_coor_data = []
-        self.joints_pos = [[0.], [0.], [0.] ]  # np.mat([[0.], [0.], [0.]])
+        self.joints_pos = [[0.], [0.], [0.]]  # np.mat([[0.], [0.], [0.]])
         self.tf_coor = []     # List of 3 Line3D (x,y,z)
         self.links3d = None   # Line3D object
         self.arrow_len = 60
@@ -671,8 +683,8 @@ class MplVisual(object):
             self.tf_coor_data.append(coor_bar)
 
     def draw_tf_view(self):
-        self.links3d = self.ax.plot(self.joints_pos[0], self.joints_pos[1], self.joints_pos[2], color='orange', marker='o', \
-                                    linewidth=4, markersize=12, markerfacecolor='purple')[0]
+        self.links3d = self.ax.plot(self.joints_pos[0], self.joints_pos[1], self.joints_pos[2], color='orange',
+                                    marker='o', linewidth=4, markersize=12, markerfacecolor='purple')[0]
 
         # add joint coordinates marker
         #draw_id = [1, 1, 1, 1, 1, 1]
