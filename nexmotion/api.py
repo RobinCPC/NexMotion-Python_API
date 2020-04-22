@@ -1,18 +1,26 @@
 # -*- coding: utf-8 -*-
 """The API of NexMotion Library"""
 from sys import platform
+import importlib
+
+DLL_PATH = "C:\\Windows\\System32\\NexMotion.dll"
+HAS_ZUGBRUECKE = importlib.util.find_spec("zugbruecke")
+
 if any([platform.startswith(os_name) for os_name in ['linux', 'darwin', 'freebsd']]):
-    try:
+    if HAS_ZUGBRUECKE:
         from zugbruecke import (WinDLL, c_int32, c_uint32, c_uint16, c_char, c_char_p, c_double, c_bool,
-                            c_void_p, pointer, POINTER, create_string_buffer)
-    except ImportError:
+                            c_void_p, POINTER, create_string_buffer)
+        DLL_PATH = "/root/prefix32/drive_c/windows/system32/NexMotion.dll"
+    else:
         raise ImportError("Need zugbruecke to use NexMotion dll lib in Linux/Darwin os system!")
 elif platform.startswith('win'):
     from ctypes import (WinDLL, c_int32, c_uint32, c_uint16, c_char, c_char_p, c_double, c_bool,
-                        c_void_p, pointer, POINTER, create_string_buffer)
+                        c_void_p, POINTER, create_string_buffer)
+    print("if your system is Windows 64bits (Win10)")
+    print("The DLL_PATH could be 'C:\\Windows\\SysWOW64\\NexMotion.dll'")
 else:
     # Handle unsupported platforms
-    print('NexMotion lib is used in unsupported platform.\n Necessary package may not be installed!')
+    raise ImportError('NexMotion lib is used in unsupported platform.\n Necessary package may not be installed!')
 
 import numpy as np
 import csv, time, copy
@@ -27,7 +35,7 @@ class Control(object):
     A class to wrap NexMotion library
     """
 
-    def __init__(self, dll_path="C:\\Windows\\System32\\NexMotion.dll"):
+    def __init__(self, dll_path=DLL_PATH):
         self.dll_ = WinDLL(dll_path)
         self.ini_path_ptr_ = c_char_p(" ".encode('utf-8'))
         self.id_ = c_int32(0)
@@ -74,13 +82,14 @@ class Control(object):
 
         self.__SetIniPath__ = self.dll_.NMC_SetIniPath
         self.__SetIniPath__.argtypes = [POINTER(c_char)]
-        self.__SetIniPath__.memsync = [
-                {
-                    'p' : [0],
-                    'n' : True
-                    }
-                ]
         self.__SetIniPath__.restype = c_int32
+        if HAS_ZUGBRUECKE:
+            self.__SetIniPath__.memsync = [
+                    {
+                        'p' : [0],
+                        'n' : True
+                        }
+                    ]
 
         self.__WriteOutputMemory__ = self.dll_.NMC_WriteOutputMemory
         self.__WriteOutputMemory__.argtypes = [c_int32, c_uint32, c_uint32, POINTER(c_uint16)]
@@ -788,7 +797,6 @@ def getTFmatrix(theta, alpha, a, d):
     return out_mat
 
 
-import importlib
 HAS_MATPLOT = importlib.util.find_spec("matplotlib")
 if HAS_MATPLOT is None:
     raise ImportError("matplotlib is not installed. MplVisual class will not work!")
