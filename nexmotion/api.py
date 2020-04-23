@@ -747,7 +747,7 @@ class Control(object):
         :type fileName: string
         :return:
         """
-        csvfile = open(fileName, 'wb')
+        csvfile = open(fileName, 'w')
         writeCSV = csv.writer(csvfile, delimiter=',')
         writeCSV.writerow(('', 'j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'x', 'y', 'z', 'a', 'b', 'c'))
         pnts = copy.deepcopy(self.pnt_list)
