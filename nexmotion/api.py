@@ -1,6 +1,27 @@
 # -*- coding: utf-8 -*-
 """The API of NexMotion Library"""
-from ctypes import (WinDLL, c_int32, c_uint32, c_uint16, c_char_p, c_double, byref)
+from sys import platform
+import importlib
+
+DLL_PATH = "C:\\Windows\\System32\\NexMotion.dll"
+HAS_ZUGBRUECKE = importlib.util.find_spec("zugbruecke")
+
+if any([platform.startswith(os_name) for os_name in ['linux', 'darwin', 'freebsd']]):
+    if HAS_ZUGBRUECKE:
+        from zugbruecke import (WinDLL, c_int32, c_uint32, c_uint16, c_char, c_char_p, c_double, c_bool,
+                            c_void_p, POINTER, create_string_buffer)
+        DLL_PATH = "/root/prefix32/drive_c/windows/system32/NexMotion.dll"
+    else:
+        raise ImportError("Need zugbruecke to use NexMotion dll lib in Linux/Darwin os system!")
+elif platform.startswith('win'):
+    from ctypes import (WinDLL, c_int32, c_uint32, c_uint16, c_char, c_char_p, c_double, c_bool,
+                        c_void_p, POINTER, create_string_buffer)
+    print("if your system is Windows 64bits (Win10)")
+    print("The DLL_PATH could be 'C:\\Windows\\SysWOW64\\NexMotion.dll'")
+else:
+    # Handle unsupported platforms
+    raise ImportError('NexMotion lib is used in unsupported platform.\n Necessary package may not be installed!')
+
 import numpy as np
 import csv, time, copy
 
@@ -14,9 +35,9 @@ class Control(object):
     A class to wrap NexMotion library
     """
 
-    def __init__(self, dll_path="C:\\Windows\\System32\\NexMotion.dll"):
+    def __init__(self, dll_path=DLL_PATH):
         self.dll_ = WinDLL(dll_path)
-        self.ini_path_ptr_ = c_char_p('')
+        self.ini_path_ptr_ = c_char_p(" ".encode('utf-8'))
         self.id_ = c_int32(0)
         self.index_ = c_int32(0)
         self.type_ = c_int32(DEVICE_TYPE_SIMULATOR)
@@ -34,14 +55,154 @@ class Control(object):
         self.doValue_ = c_uint16(0)
         self.diValue_ = c_uint16(0)
         self.pnt_list = []              # a list to store poses as list of 12 joint
+        # Provide ctypes function prototypes
+        self.__GetLibVersion__ = self.dll_.NMC_GetLibVersion
+        self.__GetLibVersion__.argtypes = [POINTER(c_int32), POINTER(c_int32), POINTER(c_int32), POINTER(c_int32)]
+        self.__GetLibVersion__.restype = c_int32
+
+        self.__DeviceOpenUp__ = self.dll_.NMC_DeviceOpenUp
+        self.__DeviceOpenUp__.argtypes = [c_int32, c_int32, POINTER(c_int32)]
+        self.__DeviceOpenUp__.restype = c_int32
+
+        self.__DeviceShutdown__ = self.dll_.NMC_DeviceShutdown
+        self.__DeviceShutdown__.argtypes = [c_int32]
+        self.__DeviceShutdown__.restype = c_int32
+
+        self.__DeviceGetState__ = self.dll_.NMC_DeviceGetState
+        self.__DeviceGetState__.argtypes = [c_int32, POINTER(c_int32)]
+        self.__DeviceGetState__.restype = c_int32
+
+        self.__DeviceGetGroupCount__ = self.dll_.NMC_DeviceGetGroupCount
+        self.__DeviceGetGroupCount__.argtypes = [c_int32, POINTER(c_int32)]
+        self.__DeviceGetGroupCount__.restype = c_int32
+
+        self.__DeviceGetGroupAxisCount__ = self.dll_.NMC_DeviceGetGroupAxisCount
+        self.__DeviceGetGroupAxisCount__.argtypes = [c_int32, c_int32, POINTER(c_int32)]
+        self.__DeviceGetGroupAxisCount__.restype = c_int32
+
+        self.__SetIniPath__ = self.dll_.NMC_SetIniPath
+        self.__SetIniPath__.argtypes = [POINTER(c_char)]
+        self.__SetIniPath__.restype = c_int32
+        if HAS_ZUGBRUECKE:
+            self.__SetIniPath__.memsync = [
+                    {
+                        'p' : [0],
+                        'n' : True
+                        }
+                    ]
+
+        self.__WriteOutputMemory__ = self.dll_.NMC_WriteOutputMemory
+        self.__WriteOutputMemory__.argtypes = [c_int32, c_uint32, c_uint32, POINTER(c_uint16)]
+        self.__WriteOutputMemory__.restype = c_int32
+
+        self.__ReadOutputMemory__ = self.dll_.NMC_ReadOutputMemory
+        self.__ReadOutputMemory__.argtypes = [c_int32, c_uint32, c_uint32, POINTER(c_uint16)]
+        self.__ReadOutputMemory__.restype = c_int32
+
+        self.__ReadInputMemory__ = self.dll_.NMC_ReadInputMemory
+        self.__ReadInputMemory__.argtypes = [c_int32, c_uint32, c_uint32, POINTER(c_uint16)]
+        self.__ReadInputMemory__.restype = c_int32
+
+        self.__GroupResetDriveAlmAll__  = self.dll_.NMC_GroupResetDriveAlmAll
+        self.__GroupResetDriveAlmAll__.argtypes = [c_int32, c_int32]
+        self.__GroupResetDriveAlmAll__.restype = c_int32
+
+        self.__GroupGetState__ = self.dll_.NMC_GroupGetState
+        self.__GroupGetState__.argtypes = [c_int32, c_int32, POINTER(c_int32)]
+        self.__GroupGetState__.restype = c_int32
+
+        self.__GroupResetState__ = self.dll_.NMC_GroupResetState
+        self.__GroupResetState__.argtypes = [c_int32, c_int32]
+        self.__GroupResetState__.restype = c_int32
+
+        self.__GroupEnable__ = self.dll_.NMC_GroupEnable
+        self.__GroupEnable__.argtypes = [c_int32, c_int32]
+        self.__GroupEnable__.restype = c_int32
+
+        self.__GroupDisable__ = self.dll_.NMC_GroupDisable
+        self.__GroupDisable__.argtypes = [c_int32, c_int32]
+        self.__GroupDisable__.restype = c_int32
+
+        self.__GroupSetVelRatio__ = self.dll_.NMC_GroupSetVelRatio
+        self.__GroupSetVelRatio__.argtypes = [c_int32, c_int32, c_double]
+        self.__GroupSetVelRatio__.restype = c_int32
+
+        self.__GroupGetVelRatio__ = self.dll_.NMC_GroupGetVelRatio
+        self.__GroupGetVelRatio__.argtypes = [c_int32, c_int32, POINTER(c_double)]
+        self.__GroupGetVelRatio__.restype = c_int32
+
+        self.__GroupGetActualPosAcs__ = self.dll_.NMC_GroupGetActualPosAcs
+        self.__GroupGetActualPosAcs__.argtypes = [c_int32, c_int32, POINTER(Pos_T)]
+        self.__GroupGetActualPosAcs__.restype = c_int32
+
+        self.__GroupGetActualPosPcs__ = self.dll_.NMC_GroupGetActualPosPcs
+        self.__GroupGetActualPosPcs__.argtypes = [c_int32, c_int32, POINTER(Pos_T)]
+        self.__GroupGetActualPosPcs__.restype = c_int32
+
+        self.__GroupAxesHomeDrive__ = self.dll_.NMC_GroupAxesHomeDrive
+        self.__GroupAxesHomeDrive__.argtypes = [c_int32, c_int32, c_int32]
+        self.__GroupAxesHomeDrive__.restype = c_int32
+
+        self.__GroupSetHomePos__ = self.dll_.NMC_GroupSetHomePos
+        self.__GroupSetHomePos__.argtypes = [c_int32, c_int32, c_int32, POINTER(Pos_T)]
+        self.__GroupSetHomePos__.restype = c_int32
+
+        self.__GroupPtpAcsAll__ = self.dll_.NMC_GroupPtpAcsAll
+        self.__GroupPtpAcsAll__.argtypes = [c_int32, c_int32, c_int32, POINTER(Pos_T)]
+        self.__GroupPtpAcsAll__.restype = c_int32
+
+        self.__GroupLine__ = self.dll_.NMC_GroupLine
+        self.__GroupLine__.argtypes = [c_int32, c_int32, c_int32, POINTER(Pos_T), c_void_p]
+        self.__GroupLine__.restype = c_int32
+
+        self.__GroupHalt__ = self.dll_.NMC_GroupHalt
+        self.__GroupHalt__.argtypes = [c_int32, c_int32]
+        self.__GroupHalt__.restype = c_int32
+
+        self.__Group3DShow__ = self.dll_.NMC_Group3DShow
+        self.__Group3DShow__.argtypes = [c_int32, c_int32]
+        self.__Group3DShow__.restype = c_int32
+
+        self.__Group3DAlwaysTop__ = self.dll_.NMC_Group3DAlwaysTop
+        self.__Group3DAlwaysTop__.argtypes = [c_int32, c_int32, c_bool]
+        self.__Group3DAlwaysTop__.restype = c_int32
+
+        self.__Group3DDrawPath__ = self.dll_.NMC_Group3DDrawPath
+        self.__Group3DDrawPath__.argtypes = [c_int32, c_int32, c_bool]
+        self.__Group3DDrawPath__.restype = c_int32
+
+        self.__BaseCalib_1p__ = self.dll_.NMC_BaseCalib_1p
+        self.__BaseCalib_1p__.argtypes = [POINTER(Pos_T), POINTER(CoordTrans_T)]
+        self.__BaseCalib_1p__.restype = c_int32
+
+        self.__BaseCalib_2p__ = self.dll_.NMC_BaseCalib_2p
+        self.__BaseCalib_2p__.argtypes = [POINTER(Pos_T), POINTER(Pos_T), POINTER(CoordTrans_T)]
+        self.__BaseCalib_2p__.restype = c_int32
+
+        self.__BaseCalib_3p__ = self.dll_.NMC_BaseCalib_3p
+        self.__BaseCalib_3p__.argtypes = [POINTER(Pos_T), POINTER(Pos_T), POINTER(Pos_T), POINTER(CoordTrans_T)]
+        self.__BaseCalib_3p__.restype = c_int32
+
         # Get DLL version
-        major = c_int32(0)
-        minor = c_int32(0)
-        stage = c_int32(0)
-        build = c_int32(0)
-        self.version_ = self.dll_.NMC_GetLibVersion(byref(major), byref(minor), byref(stage), byref(build))
-        print("Dynamics library version =", self.version_, "(", major.value, ",", minor.value,
-              ",", stage.value, ",", build.value, ")")
+        mj = c_int32(0)
+        mn = c_int32(0)
+        st = c_int32(0)
+        bd = c_int32(0)
+        self.version_ = self.getLibVersion(mj, mn, st, bd)
+        print("Dynamics library version =", self.version_, "(", mj.value, ",", mn.value,
+              ",", st.value, ",", bd.value, ")")
+
+    def getLibVersion(self, major, minor, stage, build):
+        """
+        Get the version number of DLL library:major.minor.stage.build
+
+        :param major: The major version number.
+        :param minor: The minor version number.
+        :param stage: The stage version number.
+        :param build: The build version number.
+        :return: The build of version number.
+        """
+        return self.__GetLibVersion__(major, minor, stage, build)
 
     def deviceOpenup(self, type_=None, idx_=None):
         """
@@ -59,7 +220,7 @@ class Control(object):
 
         if idx_ is not None:
             self.index_ = c_int32(idx_)
-        ret = self.dll_.NMC_DeviceOpenUp(self.type_, self.index_, byref(self.id_))
+        ret = self.__DeviceOpenUp__(self.type_, self.index_, self.id_)
         if ret == SUCCESS:
             print("device id =", self.id_.value)
         return ret
@@ -75,16 +236,16 @@ class Control(object):
         """
         if id_ is not None:
             self.id_ = c_int32(id_)
-        return self.dll_.NMC_DeviceShutdown(self.id_)
+        return self.__DeviceShutdown__(self.id_)
 
     def deviceGetState(self):
         """
         Get device state
 
         :return: error code
-        :type: int
+        :rtype: int
         """
-        return self.dll_.NMC_DeviceGetState(self.id_, byref(self.devState_))
+        return self.__DeviceGetState__(self.id_, self.devState_)
 
     def deviceGetGroupCount(self):
         """
@@ -93,7 +254,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        return self.dll_.NMC_DeviceGetGroupCount(self.id_, byref(self.numGroup_))
+        return self.__DeviceGetGroupCount__(self.id_, self.numGroup_)
 
     def deviceGetGroupAxisCount(self):
         """
@@ -102,19 +263,20 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        return self.dll_.NMC_DeviceGetGroupAxisCount(self.id_, self.index_, byref(self.numGroupAxis_))
+        return self.__DeviceGetGroupAxisCount__(self.id_, self.index_, self.numGroupAxis_)
 
     def setIniPath(self, ini_path):
         """
         Set the path of ini (configuration) file.
+        TODO: Check if this function work.
 
         :param ini_path: The ini file path to be set. Can be set to NULL(0) to reset to the default path.
         :type ini_path: str
         :return: error code
         :rtype: int
         """
-        self.ini_path_ptr_ = c_char_p(ini_path)
-        return self.dll_.NMC_SetIniPath(self.ini_path_ptr_)
+        self.ini_path_ptr_ = create_string_buffer(ini_path.encode('utf-8'))
+        return self.__SetIniPath__(self.ini_path_ptr_)
 
     def writeOutputMemory(self, DO_list):
         """
@@ -135,7 +297,7 @@ class Control(object):
         for i in DO_list[1]:
             tmp_value &= (~(1 << i))
         self.doValue_.value = tmp_value
-        return self.dll_.NMC_WriteOutputMemory(self.id_, self.offsetByte_, self.sizeByte_, byref(self.doValue_))
+        return self.__WriteOutputMemory__(self.id_, self.offsetByte_, self.sizeByte_, self.doValue_)
 
     def readOutputMemory(self):
         """
@@ -144,7 +306,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        return self.dll_.NMC_ReadOutputMemory(self.id_, self.offsetByte_, self.sizeByte_, byref(self.doValue_))
+        return self.__ReadOutputMemory__(self.id_, self.offsetByte_, self.sizeByte_, self.doValue_)
 
     def readInputMemory(self):
         """
@@ -153,7 +315,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        return self.dll_.NMC_ReadInputMemory(self.id_, self.offsetByte_, self.sizeByte_, byref(self.diValue_))
+        return self.__ReadInputMemory__(self.id_, self.offsetByte_, self.sizeByte_, self.diValue_)
 
     def groupResetDriveAlmAll(self):
         """
@@ -162,7 +324,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        return self.dll_.NMC_GroupResetDriveAlmAll(self.id_, self.index_)
+        return self.__GroupResetDriveAlmAll__(self.id_, self.index_)
 
     def groupGetState(self):
         """
@@ -171,7 +333,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        return self.dll_.NMC_GroupGetState(self.id_, self.index_, byref(self.groupState_))
+        return self.__GroupGetState__(self.id_, self.index_, self.groupState_)
 
     def groupResetState(self):
         """
@@ -182,7 +344,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        return self.dll_.NMC_GroupResetState(self.id_, self.index_)
+        return self.__GroupResetState__(self.id_, self.index_)
 
     def groupEnable(self):
         """
@@ -191,7 +353,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        return self.dll_.NMC_GroupEnable(self.id_, self.index_)
+        return self.__GroupEnable__(self.id_, self.index_)
 
     def groupDisable(self):
         """
@@ -200,7 +362,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        return self.dll_.NMC_GroupDisable(self.id_, self.index_)
+        return self.__GroupDisable__(self.id_, self.index_)
 
     def groupSetVelRatio(self, ratio):
         """
@@ -211,7 +373,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        ret = self.dll_.NMC_GroupSetVelRatio(self.id_, self.index_, c_double(ratio))
+        ret = self.__GroupSetVelRatio__(self.id_, self.index_, c_double(ratio))
         if ret == SUCCESS:
             self.groupVel_.value = ratio
         else:
@@ -221,17 +383,15 @@ class Control(object):
     def groupGetVelRatio(self, ratio):
         """
         Get the velocity percentage of a group.
-        TODO: put ratio to return argument.
 
         :param ratio: variable to storage the current velocity percentage.
-        :type ratio: float
+        :type ratio: a list of oen float element
         :return: error code
         :rtype: int
         """
-        ret = self.dll_.NMC_GroupGetVelRatio(self.id_, self.index_, byref(self.groupVel_))
+        ret = self.__GroupGetVelRatio__(self.id_, self.index_, self.groupVel_)
         if ret == SUCCESS:
-            print(self.groupVel_.value)
-            #ratio = self.groupVel_.value
+            ratio[0] = self.groupVel_.value
         else:
             print("Get group velocity failed!")
         return ret
@@ -245,7 +405,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        ret = self.dll_.NMC_GroupGetActualPosAcs(self.id_, self.index_, byref(self.actPos_))
+        ret = self.__GroupGetActualPosAcs__(self.id_, self.index_, self.actPos_)
         for i in range(len(pos)):
             pos[i] = self.actPos_.pos[i]
         return ret
@@ -259,7 +419,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        ret = self.dll_.NMC_GroupGetActualPosPcs(self.id_, self.index_, byref(self.actPos_))
+        ret = self.__GroupGetActualPosPcs__(self.id_, self.index_, self.actPos_)
         for i in range(len(pos)):
             pos[i] = self.actPos_.pos[i]
         return ret
@@ -281,35 +441,35 @@ class Control(object):
         mask_sum = 0
         for m in mask:
             mask_sum += mask_set[m]
-        return self.dll_.NMC_GroupAxesHomeDrive(self.id_, self.index_, c_int32(mask_sum))
+        return self.__GroupAxesHomeDrive__(self.id_, self.index_, c_int32(mask_sum))
 
-    def groupSetHomePose(self, mask=None, setPose=None):
+    def groupSetHomePos(self, mask=None, setPos=None):
         """
         Do Homing Manually.
         Note: this command may record joint offset value.
 
         :param mask: a list/set of joint number (0 - 5) ex. mask = [0,2,4] # will do homing for joint 1, 3, 5
         :type mask: List
-        :param setPose: a list/set of joint value that assign to joints according to mask ex. mask = [0,2,4],
-            setPose = [0, 20, -90]. will set 0 deg to joint 1, 20 deg to joint 3, and -90 deg to joint 5.
+        :param setPos: a list/set of joint value that assign to joints according to mask ex. mask = [0,2,4],
+            setPos = [0, 20, -90]. will set 0 deg to joint 1, 20 deg to joint 3, and -90 deg to joint 5.
         :type mask: List
         :return: error code
         :rtype: int
         """
-        if setPose is None or mask is None:
-            print("arg mask and setPose need to provide")
-        if not isinstance(setPose, list) or not isinstance(mask, list):
-            print("arg mask and setPose both should be list")
-        if len(setPose) != len(mask):
-            print("arg mask and setPose should have the same number of element.")
-        homePose = Pos_T()
+        if setPos is None or mask is None:
+            print("arg mask and setPos need to provide")
+        if not isinstance(setPos, list) or not isinstance(mask, list):
+            print("arg mask and setPos both should be list")
+        if len(setPos) != len(mask):
+            print("arg mask and setPos should have the same number of element.")
+        homePos = Pos_T()
         mask_set = [GROUP_AXIS_MASK_X, GROUP_AXIS_MASK_Y, GROUP_AXIS_MASK_Z,
                      GROUP_AXIS_MASK_A, GROUP_AXIS_MASK_B, GROUP_AXIS_MASK_C]
         mask_sum = 0
-        for m, p in zip(mask, setPose):
+        for m, p in zip(mask, setPos):
             mask_sum += mask_set[m]
-            homePose.pos[m] = p
-        return self.dll_.NMC_GroupSetHomePose(self.id_, self.index_, c_int32(mask_sum), byref(homePose))
+            homePos.pos[m] = p
+        return self.__GroupSetHomePos__(self.id_, self.index_, c_int32(mask_sum), homePos)
 
     def groupPtpAcsAll(self, desPos):
         """
@@ -329,12 +489,13 @@ class Control(object):
         mask += GROUP_AXIS_MASK_A
         mask += GROUP_AXIS_MASK_B
         mask += GROUP_AXIS_MASK_C
-        return self.dll_.NMC_GroupPtpAcsAll(self.id_, self.index_, c_int32(mask), byref(self.desPos_))
+        return self.__GroupPtpAcsAll__(self.id_, self.index_, c_int32(mask), self.desPos_)
 
-    def groupLine(self, desPos, maxVel=0):
+    def groupLine(self, desPos, maxVel=None):
         """
         Enable the group line interpolation motion from the current position to the target position in
-        the Cartesian space.
+        the Cartesian space. Note: max. velocity setting is not implement in python version API.
+        TODO: Check c++ version API and update to accept the macVel.
 
         :param desPos: a List of 6 element [x, y, z, roll, pitch, yaw]
         :param maxVel: set the limit of max. velocity. input 0 to ignore the parameter
@@ -350,7 +511,12 @@ class Control(object):
         mask += GROUP_AXIS_MASK_C
         for i in range(len(desPos)):
             self.desPos_.pos[i] = desPos[i]
-        return self.dll_.NMC_GroupLine(self.id_, self.index_, c_int32(mask), byref(self.desPos_), maxVel)
+        if maxVel is None:
+            maxVel = c_void_p()
+        else:
+            print("This Python version API do not accept maxVel argument and set to NULL as defualt.")
+            maxVel = c_void_p()
+        return self.__GroupLine__(self.id_, self.index_, c_int32(mask), self.desPos_, maxVel)
 
     def groupHalt(self):
         """
@@ -359,7 +525,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        return self.dll_.NMC_GroupHalt(self.id_, self.index_)
+        return self.__GroupHalt__(self.id_, self.index_)
 
     def group3DShow(self, top_=True):
         """
@@ -370,9 +536,9 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        ret = self.dll_.NMC_Group3DShow(self.id_, self.index_)
+        ret = self.__Group3DShow__(self.id_, self.index_)
         if top_:
-            ret = self.dll_.NMC_Group3DAlwaysTop(self.id_, self.index_, True)
+            ret = self.__Group3DAlwaysTop__(self.id_, self.index_, True)
         return ret
 
     def group3DDrawPath(self, enable=True):
@@ -384,7 +550,7 @@ class Control(object):
         :return: error code
         :rtype: int
         """
-        return self.dll_.NMC_Group3DDrawPath(self.id_, self.index_, enable)
+        return self.__Group3DDrawPath__(self.id_, self.index_, enable)
 
     def baseCalib_1p(self, baseP1, baseCoordTrans):
         """
@@ -399,7 +565,7 @@ class Control(object):
         """
         for i in range(len(baseP1)):
             self.refBasePntArr_[0].pos[i] = baseP1[i]
-        ret = self.dll_.NMC_BaseCalib_1p(byref(self.refBasePntArr_[0]), byref(self.refBaseCoordTrans_))
+        ret = self.__BaseCalib_1p__(self.refBasePntArr_[0], self.refBaseCoordTrans_)
         if ret != SUCCESS:
             print("Failed to compute base coordinate convention!")
             return ret
@@ -423,7 +589,7 @@ class Control(object):
         for i in range(len(baseP1)):
             self.refBasePntArr_[0].pos[i] = baseP1[i]
             self.refBasePntArr_[1].pos[i] = baseP2[i]
-        ret = self.dll_.NMC_BaseCalib_2p(byref(self.refBasePntArr_[0]), byref(self.refBasePntArr_[1]), byref(self.refBaseCoordTrans_))
+        ret = self.__BaseCalib_2p__(self.refBasePntArr_[0], self.refBasePntArr_[1], self.refBaseCoordTrans_)
         if ret != SUCCESS:
             print("Failed to compute base coordinate convention!")
             return ret
@@ -450,8 +616,8 @@ class Control(object):
             self.refBasePntArr_[0].pos[i] = baseP1[i]
             self.refBasePntArr_[1].pos[i] = baseP2[i]
             self.refBasePntArr_[2].pos[i] = baseP3[i]
-        ret = self.dll_.NMC_BaseCalib_3p(byref(self.refBasePntArr_[0]), byref(self.refBasePntArr_[1]), byref(self.refBasePntArr_[2]),
-                                         byref(self.refBaseCoordTrans_))
+        ret = self.__BaseCalib_3p__(self.refBasePntArr_[0], self.refBasePntArr_[1], self.refBasePntArr_[2],
+                                         self.refBaseCoordTrans_)
         if ret != SUCCESS:
             print("Failed to compute base coordinate convention!")
             return ret
@@ -465,6 +631,7 @@ class Control(object):
         Note: check group state will block function till joints arrive, so groupHalt/groupStop can not interrupt.
 
         :param index: indicate the position of target pose in the point list
+        :type index: int
         :return: error code
         :rtype: int
         """
@@ -489,6 +656,7 @@ class Control(object):
         Note: check group state will block function till joints arrive, so groupHalt/groupStop can not interrupt.
 
         :param index: indicate the position of target pose in the point list
+        :type index: int
         :return: error code
         :rtype: int
         """
@@ -557,6 +725,7 @@ class Control(object):
     def readPoint(self, fileName):
         """
         Read Points from CSV file.
+        TODO: Add return when fail to read file.  check to clear all points or keep them and append.
 
         :param fileName: the name of file that have points inside.
         :type fileName: string
@@ -565,6 +734,7 @@ class Control(object):
         with open(fileName, 'r') as csvfile:
             readCSV = csv.reader(csvfile, delimiter=',')
             next(readCSV)   # pop out header
+            self.pnt_list = []  # clear previous recorded points.
             for row in readCSV:
                 pnt_arr = [float(el) for el in row[1:]]
                 self.pnt_list.append(pnt_arr)
@@ -577,12 +747,12 @@ class Control(object):
         :type fileName: string
         :return:
         """
-        csvfile = open(fileName, 'wb')
+        csvfile = open(fileName, 'w')
         writeCSV = csv.writer(csvfile, delimiter=',')
         writeCSV.writerow(('', 'j1', 'j2', 'j3', 'j4', 'j5', 'j6', 'x', 'y', 'z', 'a', 'b', 'c'))
         pnts = copy.deepcopy(self.pnt_list)
-        for id, el in enumerate(pnts):
-            el.insert(0, id)
+        for idx, el in enumerate(pnts):
+            el.insert(0, idx)
             writeCSV.writerow(el)
 
         csvfile.close()
@@ -627,12 +797,11 @@ def getTFmatrix(theta, alpha, a, d):
     return out_mat
 
 
-try:
+HAS_MATPLOT = importlib.util.find_spec("matplotlib")
+if HAS_MATPLOT is None:
+    raise ImportError("matplotlib is not installed. MplVisual class will not work!")
+else:
     import mpl_toolkits.mplot3d.axes3d
-except ImportError as e:
-    print(e.name)
-    print("Can not import matplotlib!")
-    print("MplVisual class will not work!")
 
 
 class MplVisual(object):

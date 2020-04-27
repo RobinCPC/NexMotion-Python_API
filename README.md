@@ -1,5 +1,6 @@
 # NexMotion-Python_API
-NexCOBOT NexMotion Python API
+NexCOBOT NexMotion Python API  
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/RobinCPC/NexMotion-Python_API.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/RobinCPC/NexMotion-Python_API/context:python)
 
 ## Environment
 * Windows 7/10
